@@ -1,50 +1,43 @@
 ---
 title: 'Redeem API'
-description: '토큰 환수 (소각) 처리'
+description: '토큰 환수(소각) 트랜잭션 데이터 생성'
 ---
 
 # Redeem API
 
-Redeem API는 발행된 토큰을 환수(소각)하는 기능을 제공합니다. 환수된 토큰은 totalSupply에서 차감됩니다.
+Redeem API는 발행된 토큰을 환수(소각)하기 위한 트랜잭션 데이터를 생성합니다. **Operator** 권한이 필요합니다.
 
 <Warning>
   환수된 토큰은 복구할 수 없습니다. 신중하게 실행하세요.
 </Warning>
 
-## 환수 권한
-
-| 권한 | 환수 대상 | 설명 |
-|------|----------|------|
-| **Issuer** | 모든 주소 | 발행사는 모든 주소에서 토큰 환수 가능 |
-| **Controller** | 모든 주소 | 법적 조치를 위한 강제 환수 가능 |
-
 ---
 
-## 토큰 환수
+## 환수 트랜잭션 데이터 생성
 
-지정된 주소에서 토큰을 환수합니다.
+토큰 환수를 위한 트랜잭션 데이터를 생성합니다.
 
 ### Request
 
 ```bash
-POST /main/v1/tokens/{token}/redeem
+POST /main/v1/redeem/tx/data
 ```
-
-<ParamField path="token" type="string" required>
-  토큰 심볼 (예: `PULSE-ST-001`)
-</ParamField>
 
 ### Body Parameters
 
-<ParamField body="partition" type="string">
-  파티션 ID (선택, 기본 파티션 사용 시 생략)
+<ParamField body="tokenSymbol" type="string" required>
+  토큰 심볼 (예: `PULSE-ST-001`)
 </ParamField>
 
-<ParamField body="from" type="string" required>
-  환수할 지갑 주소
+<ParamField body="partition" type="string" required>
+  파티션 ID
 </ParamField>
 
-<ParamField body="value" type="string" required>
+<ParamField body="holder" type="string" required>
+  환수 대상 지갑 주소
+</ParamField>
+
+<ParamField body="amount" type="number" required>
   환수 수량
 </ParamField>
 
@@ -57,19 +50,21 @@ POST /main/v1/tokens/{token}/redeem
 <CodeGroup>
 
 ```bash cURL
-curl -X POST "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/redeem" \
+curl -X POST "https://api.stopulse.co.kr/main/v1/redeem/tx/data" \
   -H "Authorization: Bearer {access_token}" \
   -H "Content-Type: application/json" \
   -d '{
-    "from": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-    "value": "100",
-    "data": "0x..."
+    "tokenSymbol": "PULSE-ST-001",
+    "partition": "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "holder": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+    "amount": 100,
+    "data": ""
   }'
 ```
 
 ```javascript JavaScript
 const response = await fetch(
-  'https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/redeem',
+  'https://api.stopulse.co.kr/main/v1/redeem/tx/data',
   {
     method: 'POST',
     headers: {
@@ -77,8 +72,11 @@ const response = await fetch(
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      from: '0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb',
-      value: '100'
+      tokenSymbol: 'PULSE-ST-001',
+      partition: '0x0000000000000000000000000000000000000000000000000000000000000001',
+      holder: '0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73',
+      amount: 100,
+      data: ''
     })
   }
 );
@@ -87,14 +85,17 @@ const response = await fetch(
 ```python Python
 import requests
 
-url = "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/redeem"
+url = "https://api.stopulse.co.kr/main/v1/redeem/tx/data"
 headers = {
     "Authorization": "Bearer {access_token}",
     "Content-Type": "application/json"
 }
 data = {
-    "from": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-    "value": "100"
+    "tokenSymbol": "PULSE-ST-001",
+    "partition": "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "holder": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+    "amount": 100,
+    "data": ""
 }
 
 response = requests.post(url, headers=headers, json=data)
@@ -106,159 +107,93 @@ response = requests.post(url, headers=headers, json=data)
 
 ```json 200
 {
-  "transactionHash": "0xdef456...",
-  "requestId": "req-789012",
-  "token": "PULSE-ST-001",
-  "from": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-  "value": "100",
-  "newTotalSupply": "999900"
-}
-```
-
----
-
-## 파티션별 환수
-
-특정 파티션에서만 토큰을 환수합니다.
-
-### Request
-
-```bash
-POST /main/v1/tokens/{token}/partitions/{partition}/redeem
-```
-
-### Example
-
-```bash cURL
-curl -X POST "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/partitions/0x0000...0001/redeem" \
-  -H "Authorization: Bearer {access_token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "from": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-    "value": "50"
-  }'
-```
-
-### Response
-
-```json 200
-{
-  "transactionHash": "0xghi789...",
-  "requestId": "req-345678",
-  "token": "PULSE-ST-001",
-  "partition": "0x0000...0001",
-  "from": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-  "value": "50"
-}
-```
-
----
-
-## Controller 강제 환수
-
-Controller 권한으로 법적 조치에 따른 강제 환수를 수행합니다.
-
-### Request
-
-```bash
-POST /main/v1/tokens/{token}/controller/redeem
-```
-
-### Body Parameters
-
-<ParamField body="from" type="string" required>
-  환수 대상 주소
-</ParamField>
-
-<ParamField body="value" type="string" required>
-  환수 수량
-</ParamField>
-
-<ParamField body="reason" type="string" required>
-  강제 환수 사유 (법적 근거)
-</ParamField>
-
-### Example
-
-```bash cURL
-curl -X POST "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/controller/redeem" \
-  -H "Authorization: Bearer {access_token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "from": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-    "value": "1000",
-    "reason": "Court order #2024-12345"
-  }'
-```
-
-### Response
-
-```json 200
-{
-  "transactionHash": "0xjkl012...",
-  "requestId": "req-901234",
-  "token": "PULSE-ST-001",
-  "from": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-  "value": "1000",
-  "reason": "Court order #2024-12345",
-  "controllerAction": true
+  "to": "0xContractAddress...",
+  "data": "0xEncodedTransactionData...",
+  "gas": "150000"
 }
 ```
 
 <Note>
-  Controller 강제 환수는 모든 작업이 감사 로그에 기록됩니다.
+  반환된 트랜잭션 데이터는 서명 후 `/transaction/send` API로 전송해야 합니다.
 </Note>
 
 ---
 
-## 환수 이력 조회
+## 토큰 환수 실행 (Issuer)
 
-토큰의 환수 이력을 조회합니다.
+**Issuer** 권한으로 직접 토큰을 환수합니다.
 
 ### Request
 
 ```bash
-GET /main/v1/tokens/{token}/redemptions
+POST /main/v1/tokens/{tokenSymbol}/redeem
 ```
 
-### Query Parameters
-
-<ParamField query="from" type="string">
-  특정 주소의 환수 이력만 조회
+<ParamField path="tokenSymbol" type="string" required>
+  토큰 심볼
 </ParamField>
 
-<ParamField query="startDate" type="string">
-  시작일 (ISO 8601)
+### Body Parameters
+
+<ParamField body="holder" type="string" required>
+  환수 대상 지갑 주소
 </ParamField>
 
-<ParamField query="endDate" type="string">
-  종료일 (ISO 8601)
+<ParamField body="partitionName" type="string" required>
+  파티션 이름 (예: `초기`, `락업`)
 </ParamField>
+
+<ParamField body="amount" type="number" required>
+  환수 수량
+</ParamField>
+
+<ParamField body="data" type="string">
+  추가 데이터
+</ParamField>
+
+### Example
+
+```bash cURL
+curl -X POST "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/redeem" \
+  -H "Authorization: Bearer {access_token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "holder": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+    "partitionName": "초기",
+    "amount": 100,
+    "data": " "
+  }'
+```
 
 ### Response
 
 ```json 200
 {
-  "token": "PULSE-ST-001",
-  "redemptions": [
-    {
-      "transactionHash": "0xdef456...",
-      "from": "0xd14f...",
-      "value": "100",
-      "timestamp": "2024-01-15T10:30:00Z",
-      "controllerAction": false
-    },
-    {
-      "transactionHash": "0xjkl012...",
-      "from": "0xd14f...",
-      "value": "1000",
-      "timestamp": "2024-01-16T14:00:00Z",
-      "controllerAction": true,
-      "reason": "Court order #2024-12345"
-    }
-  ],
-  "totalRedeemed": "1100"
+  "transactionHash": "0xdef456...",
+  "requestId": "REDEEM:789012ab-..."
 }
+```
+
+---
+
+## 환수 플로우
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            토큰 환수 플로우                                   │
+│                                                                             │
+│  ① 트랜잭션 생성          ② 서명                ③ 트랜잭션 전송             │
+│  ┌───────────────┐     ┌───────────────┐     ┌───────────────┐            │
+│  │ /redeem/      │────▶│     Sign      │────▶│ /transaction  │            │
+│  │ tx/data       │     │   (Client)    │     │    /send      │            │
+│  └───────────────┘     └───────────────┘     └───────────────┘            │
+│                                                                             │
+│  또는 Issuer 권한으로 직접 실행                                             │
+│  ┌───────────────────────────────────────────┐                             │
+│  │ /tokens/{tokenSymbol}/redeem              │                             │
+│  └───────────────────────────────────────────┘                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -269,6 +204,7 @@ GET /main/v1/tokens/{token}/redemptions
 |-------------|----------|------|
 | 400 | `INSUFFICIENT_BALANCE` | 환수 수량이 잔액 초과 |
 | 400 | `INVALID_ADDRESS` | 유효하지 않은 지갑 주소 |
+| 403 | `NOT_OPERATOR` | Operator 권한 없음 |
 | 403 | `NOT_ISSUER` | Issuer 권한 없음 |
-| 403 | `NOT_CONTROLLER` | Controller 권한 없음 |
 | 404 | `TOKEN_NOT_FOUND` | 토큰이 존재하지 않음 |
+| 404 | `PARTITION_NOT_FOUND` | 파티션이 존재하지 않음 |

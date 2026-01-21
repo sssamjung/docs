@@ -1,19 +1,11 @@
 ---
 title: 'Transaction API'
-description: '트랜잭션 조회 및 상태 확인'
+description: '서명된 트랜잭션 전송'
 ---
 
 # Transaction API
 
-Transaction API는 블록체인 트랜잭션의 상태 조회 및 이력 확인 기능을 제공합니다.
-
-## 트랜잭션 상태
-
-| 상태 | 설명 |
-|------|------|
-| `pending` | 트랜잭션이 블록에 포함되기 전 |
-| `confirmed` | 블록에 포함되어 확정됨 |
-| `failed` | 트랜잭션 실행 실패 |
+Transaction API는 서명된 트랜잭션을 블록체인에 전송합니다.
 
 <Note>
   Pulse 네트워크는 QBFT 합의를 사용하므로, 블록 확정 후 되돌림(reorg)이 발생하지 않습니다.
@@ -21,18 +13,20 @@ Transaction API는 블록체인 트랜잭션의 상태 조회 및 이력 확인 
 
 ---
 
-## 트랜잭션 상태 조회
+## 트랜잭션 전송
 
-트랜잭션 해시로 상태를 조회합니다.
+서명된 트랜잭션을 블록체인에 전송합니다.
 
 ### Request
 
 ```bash
-GET /main/v1/transactions/{transactionHash}
+POST /main/v1/transaction/send
 ```
 
-<ParamField path="transactionHash" type="string" required>
-  트랜잭션 해시 (예: `0xabc123...`)
+### Body Parameters
+
+<ParamField body="signedTx" type="string" required>
+  서명된 트랜잭션 데이터 (RLP 인코딩된 hex 문자열)
 </ParamField>
 
 ### Example
@@ -40,31 +34,47 @@ GET /main/v1/transactions/{transactionHash}
 <CodeGroup>
 
 ```bash cURL
-curl -X GET "https://api.stopulse.co.kr/main/v1/transactions/0xabc123def456..." \
-  -H "Authorization: Bearer {access_token}"
+curl -X POST "https://api.stopulse.co.kr/main/v1/transaction/send" \
+  -H "Authorization: Bearer {access_token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "signedTx": "0xf86c808504a817c80082520894..."
+  }'
 ```
 
 ```javascript JavaScript
-const txHash = '0xabc123def456...';
 const response = await fetch(
-  `https://api.stopulse.co.kr/main/v1/transactions/${txHash}`,
+  'https://api.stopulse.co.kr/main/v1/transaction/send',
   {
-    headers: { 'Authorization': 'Bearer {access_token}' }
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer {access_token}',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      signedTx: '0xf86c808504a817c80082520894...'
+    })
   }
 );
-const txInfo = await response.json();
-console.log(txInfo.status); // 'confirmed'
+
+const result = await response.json();
+console.log('트랜잭션 해시:', result.transactionHash);
 ```
 
 ```python Python
 import requests
 
-tx_hash = "0xabc123def456..."
-url = f"https://api.stopulse.co.kr/main/v1/transactions/{tx_hash}"
-headers = {"Authorization": "Bearer {access_token}"}
+url = "https://api.stopulse.co.kr/main/v1/transaction/send"
+headers = {
+    "Authorization": "Bearer {access_token}",
+    "Content-Type": "application/json"
+}
+data = {
+    "signedTx": "0xf86c808504a817c80082520894..."
+}
 
-response = requests.get(url, headers=headers)
-print(response.json())
+response = requests.post(url, headers=headers, json=data)
+print("결과:", response.json())
 ```
 
 </CodeGroup>
@@ -73,211 +83,151 @@ print(response.json())
 
 ```json 200
 {
-  "transactionHash": "0xabc123def456...",
-  "status": "confirmed",
-  "blockNumber": 12345678,
-  "blockHash": "0xblock...",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "from": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-  "to": "0x734c49630caC28EaaC33e9722268e64cA80AbcFd",
-  "type": "transfer",
-  "token": "PULSE-ST-001",
-  "value": "100",
-  "gasUsed": "21000"
+  "transactionHash": "0xabc123def456789...",
+  "requestId": "TX:da9c32e8-9d89-45b0-aee2-8b56e1c65189"
 }
 ```
 
-실패한 트랜잭션:
+<ResponseField name="transactionHash" type="string">
+  블록체인 트랜잭션 해시
+</ResponseField>
 
-```json 200
-{
-  "transactionHash": "0xfailed...",
-  "status": "failed",
-  "blockNumber": 12345679,
-  "timestamp": "2024-01-15T10:31:00Z",
-  "error": {
-    "code": "INSUFFICIENT_BALANCE",
-    "message": "Sender does not have enough tokens"
+<ResponseField name="requestId" type="string">
+  요청 ID (형식: `TX:{uuid}`)
+</ResponseField>
+
+---
+
+## 트랜잭션 플로우
+
+모든 토큰 작업(전송, 스왑, 잠금 등)은 동일한 패턴을 따릅니다:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          트랜잭션 실행 플로우                                  │
+│                                                                             │
+│  ① 트랜잭션 데이터 생성        ② 클라이언트 서명        ③ 트랜잭션 전송        │
+│  ┌───────────────────┐     ┌───────────────────┐     ┌───────────────┐     │
+│  │ /transfer/tx/data │     │                   │     │ /transaction  │     │
+│  │ /swap/dt/tx/data  │────▶│   Private Key로   │────▶│    /send      │     │
+│  │ /redeem/tx/data   │     │   트랜잭션 서명    │     │               │     │
+│  │ /lock/create/...  │     │                   │     │               │     │
+│  └───────────────────┘     └───────────────────┘     └───────────────┘     │
+│                                                                             │
+│  응답: { to, data, gas }       서명된 트랜잭션          응답: txHash         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 트랜잭션 서명 예시
+
+```javascript
+const { ethers } = require('ethers');
+
+// 1. 트랜잭션 데이터 생성 (API 호출)
+const txData = await fetch(
+  'https://api.stopulse.co.kr/main/v1/transfer/tx/data',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      tokenSymbol: 'PULSE-ST-001',
+      partition: '0x0000...0001',
+      from: senderAddress,
+      to: receiverAddress,
+      amount: 100,
+      data: ''
+    })
   }
-}
-```
+).then(r => r.json());
 
----
+// 2. 트랜잭션 객체 생성
+const tx = {
+  to: txData.to,
+  data: txData.data,
+  gasLimit: txData.gas,
+  gasPrice: ethers.parseUnits('0', 'gwei'), // Pulse 네트워크는 가스비 0
+  nonce: await provider.getTransactionCount(senderAddress),
+  chainId: 1337 // Pulse 네트워크 체인 ID
+};
 
-## Request ID로 조회
+// 3. 서명
+const wallet = new ethers.Wallet(privateKey);
+const signedTx = await wallet.signTransaction(tx);
 
-API 요청 시 반환된 requestId로 트랜잭션을 조회합니다.
-
-### Request
-
-```bash
-GET /main/v1/requests/{requestId}
-```
-
-<ParamField path="requestId" type="string" required>
-  요청 ID (예: `req-123456`)
-</ParamField>
-
-### Example
-
-```bash cURL
-curl -X GET "https://api.stopulse.co.kr/main/v1/requests/req-123456" \
-  -H "Authorization: Bearer {access_token}"
-```
-
-### Response
-
-```json 200
-{
-  "requestId": "req-123456",
-  "transactionHash": "0xabc123def456...",
-  "status": "confirmed",
-  "type": "transfer",
-  "createdAt": "2024-01-15T10:29:55Z",
-  "confirmedAt": "2024-01-15T10:30:00Z"
-}
-```
-
----
-
-## 토큰 트랜잭션 이력 조회
-
-특정 토큰의 트랜잭션 이력을 조회합니다.
-
-### Request
-
-```bash
-GET /main/v1/tokens/{token}/transactions
-```
-
-### Query Parameters
-
-<ParamField query="type" type="string">
-  트랜잭션 유형 필터 (`issue` | `transfer` | `redeem` | `swap` | `lock` | `unlock`)
-</ParamField>
-
-<ParamField query="from" type="string">
-  송신자 주소 필터
-</ParamField>
-
-<ParamField query="to" type="string">
-  수신자 주소 필터
-</ParamField>
-
-<ParamField query="startDate" type="string">
-  시작일 (ISO 8601)
-</ParamField>
-
-<ParamField query="endDate" type="string">
-  종료일 (ISO 8601)
-</ParamField>
-
-<ParamField query="page" type="number">
-  페이지 번호 (기본값: 1)
-</ParamField>
-
-<ParamField query="limit" type="number">
-  페이지당 항목 수 (기본값: 50)
-</ParamField>
-
-### Example
-
-```bash cURL
-curl -X GET "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/transactions?type=transfer&limit=10" \
-  -H "Authorization: Bearer {access_token}"
-```
-
-### Response
-
-```json 200
-{
-  "token": "PULSE-ST-001",
-  "transactions": [
-    {
-      "transactionHash": "0xabc123...",
-      "type": "transfer",
-      "from": "0xd14f...",
-      "to": "0x734c...",
-      "value": "100",
-      "timestamp": "2024-01-15T10:30:00Z",
-      "status": "confirmed"
+// 4. 트랜잭션 전송
+const result = await fetch(
+  'https://api.stopulse.co.kr/main/v1/transaction/send',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
     },
-    {
-      "transactionHash": "0xdef456...",
-      "type": "transfer",
-      "from": "0x734c...",
-      "to": "0xa13F...",
-      "value": "50",
-      "timestamp": "2024-01-15T09:00:00Z",
-      "status": "confirmed"
-    }
-  ],
-  "page": 1,
-  "totalPages": 5,
-  "totalCount": 48
-}
+    body: JSON.stringify({
+      signedTx: signedTx
+    })
+  }
+).then(r => r.json());
+
+console.log('트랜잭션 해시:', result.transactionHash);
 ```
 
 ---
 
-## 주소별 트랜잭션 이력 조회
+## Atomic Swap (DvP) 전송
 
-특정 주소의 트랜잭션 이력을 조회합니다.
+ST와 DT를 원자적으로 교환하는 경우, 두 트랜잭션을 함께 전송합니다.
 
-### Request
+```javascript
+async function executeDvPSwap(seller, buyer, stAmount, dtAmount) {
+  // 1. DT 트랜잭션 데이터 생성
+  const dtTxData = await createDtTxData(buyer, seller, dtAmount);
 
-```bash
-GET /main/v1/tokens/{token}/holders/{holder}/transactions
-```
+  // 2. ST 트랜잭션 데이터 생성
+  const stTxData = await createStTxData(seller, buyer, stAmount);
 
-### Example
+  // 3. 각각 서명
+  const signedDtTx = await signTransaction(dtTxData, buyerWallet);
+  const signedStTx = await signTransaction(stTxData, sellerWallet);
 
-```bash cURL
-curl -X GET "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/holders/0xd14f.../transactions?limit=20" \
-  -H "Authorization: Bearer {access_token}"
-```
-
-### Response
-
-```json 200
-{
-  "token": "PULSE-ST-001",
-  "holder": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-  "transactions": [
+  // 4. Atomic Swap 실행 - 두 트랜잭션 함께 전송
+  const result = await fetch(
+    'https://api.stopulse.co.kr/main/v1/transaction/send',
     {
-      "transactionHash": "0xabc123...",
-      "type": "transfer",
-      "direction": "out",
-      "counterparty": "0x734c...",
-      "value": "100",
-      "timestamp": "2024-01-15T10:30:00Z"
-    },
-    {
-      "transactionHash": "0xghi789...",
-      "type": "issue",
-      "direction": "in",
-      "counterparty": "0xa13F...",
-      "value": "1000",
-      "timestamp": "2024-01-10T00:00:00Z"
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        transactions: [signedDtTx, signedStTx]
+      })
     }
-  ]
+  ).then(r => r.json());
+
+  return result;
 }
 ```
 
+<Warning>
+  Atomic Swap에서 두 트랜잭션 중 하나라도 실패하면 모두 롤백됩니다.
+</Warning>
+
 ---
 
-## 트랜잭션 유형
+## 트랜잭션 상태
 
-| 유형 | 설명 |
+| 상태 | 설명 |
 |------|------|
-| `issue` | 토큰 발행 |
-| `transfer` | 토큰 전송 |
-| `redeem` | 토큰 환수 |
-| `swap` | ST/DT 스왑 |
-| `lock` | 토큰 잠금 |
-| `unlock` | 토큰 잠금 해제 |
-| `kyc_register` | KYC 등록 |
-| `kyc_remove` | KYC 해제 |
+| `pending` | 트랜잭션이 블록에 포함되기 전 |
+| `confirmed` | 블록에 포함되어 확정됨 |
+| `failed` | 트랜잭션 실행 실패 |
 
 ---
 
@@ -300,6 +250,8 @@ const explorerUrl = `https://explorer.stopulse.co.kr/tx/${transactionHash}`;
 
 | HTTP Status | 에러 코드 | 설명 |
 |-------------|----------|------|
-| 400 | `INVALID_HASH` | 유효하지 않은 트랜잭션 해시 |
-| 404 | `TRANSACTION_NOT_FOUND` | 트랜잭션을 찾을 수 없음 |
-| 404 | `REQUEST_NOT_FOUND` | 요청 ID를 찾을 수 없음 |
+| 400 | `INVALID_SIGNATURE` | 유효하지 않은 서명 |
+| 400 | `INVALID_NONCE` | 잘못된 nonce 값 |
+| 400 | `INSUFFICIENT_GAS` | 가스 부족 |
+| 400 | `TRANSACTION_FAILED` | 트랜잭션 실행 실패 |
+| 403 | `NOT_AUTHORIZED` | 트랜잭션 실행 권한 없음 |

@@ -7,22 +7,24 @@ description: '토큰 보유자 잔액 및 파티션 조회'
 
 Token Holder API는 특정 지갑 주소의 토큰 잔액 및 파티션별 보유 현황을 조회합니다.
 
+---
+
 ## 잔액 조회
 
-특정 주소의 토큰 보유량을 조회합니다.
+특정 주소의 토큰 총 보유량을 조회합니다.
 
 ### Request
 
 ```bash
-GET /main/v1/tokens/{token}/holders/{holder}/balance
+GET /main/v1/holders/{holder}/tokens/{tokenSymbol}/balance
 ```
 
-<ParamField path="token" type="string" required>
-  토큰 심볼 (예: `PULSE-ST-001`)
+<ParamField path="holder" type="string" required>
+  지갑 주소 (예: `0xAdb6Dc93FF5d5d93998e1643A03048C5437B08B7`)
 </ParamField>
 
-<ParamField path="holder" type="string" required>
-  지갑 주소 (예: `0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb`)
+<ParamField path="tokenSymbol" type="string" required>
+  토큰 심볼 (DT 토큰일 경우 `DT`)
 </ParamField>
 
 ### Example
@@ -30,52 +32,78 @@ GET /main/v1/tokens/{token}/holders/{holder}/balance
 <CodeGroup>
 
 ```bash cURL
-curl -X GET "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/holders/0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb/balance" \
+curl -X GET "https://api.stopulse.co.kr/main/v1/holders/0xAdb6Dc93FF5d5d93998e1643A03048C5437B08B7/tokens/PULSE-ST-001/balance" \
   -H "Authorization: Bearer {access_token}"
 ```
 
 ```javascript JavaScript
+const holder = '0xAdb6Dc93FF5d5d93998e1643A03048C5437B08B7';
 const response = await fetch(
-  'https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/holders/0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb/balance',
+  `https://api.stopulse.co.kr/main/v1/holders/${holder}/tokens/PULSE-ST-001/balance`,
   {
     headers: { 'Authorization': 'Bearer {access_token}' }
   }
 );
-const data = await response.json();
-console.log(data.balance);
+const balance = await response.json();
+console.log('잔액:', balance);
 ```
 
 ```python Python
 import requests
 
-url = "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/holders/0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb/balance"
+holder = "0xAdb6Dc93FF5d5d93998e1643A03048C5437B08B7"
+url = f"https://api.stopulse.co.kr/main/v1/holders/{holder}/tokens/PULSE-ST-001/balance"
 headers = {"Authorization": "Bearer {access_token}"}
 
 response = requests.get(url, headers=headers)
-print(response.json())
+print("잔액:", response.json())
 ```
 
 </CodeGroup>
 
 ### Response
 
-<ResponseField name="token" type="string">
-  토큰 심볼
-</ResponseField>
+```json 200
+"1000"
+```
 
-<ResponseField name="holder" type="string">
-  지갑 주소
-</ResponseField>
+<Note>
+  응답은 문자열 형태의 숫자입니다. 모든 파티션의 합계입니다.
+</Note>
 
-<ResponseField name="balance" type="string">
-  총 보유량 (모든 파티션 합계)
-</ResponseField>
+---
+
+## 보유자 파티션 목록 조회
+
+특정 주소가 보유한 토큰의 파티션 목록을 조회합니다.
+
+### Request
+
+```bash
+GET /main/v1/holders/{holder}/tokens/{tokenSymbol}/partitions
+```
+
+### Example
+
+```bash cURL
+curl -X GET "https://api.stopulse.co.kr/main/v1/holders/0xAdb6Dc93FF5d5d93998e1643A03048C5437B08B7/tokens/PULSE-ST-001/partitions" \
+  -H "Authorization: Bearer {access_token}"
+```
+
+### Response
 
 ```json 200
 {
-  "token": "PULSE-ST-001",
-  "holder": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-  "balance": "1000"
+  "partitions": [
+    {
+      "name": "초기",
+      "partition": "0x0000000000000000000000000000000000000000000000000000000000000001"
+    },
+    {
+      "name": "락업",
+      "partition": "0x0000000000000000000000000000000000000000000000000000000000000002"
+    }
+  ]
 }
 ```
 
@@ -83,20 +111,20 @@ print(response.json())
 
 ## 파티션별 잔액 조회
 
-특정 주소의 파티션별 토큰 보유량을 조회합니다.
+특정 파티션의 토큰 잔액을 조회합니다.
 
 ### Request
 
 ```bash
-GET /main/v1/tokens/{token}/holders/{holder}/partitions/{partition}/balance
+GET /main/v1/holders/{holder}/tokens/{tokenSymbol}/partitions/{partition}/balance
 ```
-
-<ParamField path="token" type="string" required>
-  토큰 심볼
-</ParamField>
 
 <ParamField path="holder" type="string" required>
   지갑 주소
+</ParamField>
+
+<ParamField path="tokenSymbol" type="string" required>
+  토큰 심볼
 </ParamField>
 
 <ParamField path="partition" type="string" required>
@@ -108,18 +136,20 @@ GET /main/v1/tokens/{token}/holders/{holder}/partitions/{partition}/balance
 <CodeGroup>
 
 ```bash cURL
-curl -X GET "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/holders/0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb/partitions/0x0000000000000000000000000000000000000000000000000000000000000001/balance" \
+curl -X GET "https://api.stopulse.co.kr/main/v1/holders/0xAdb6Dc93FF5d5d93998e1643A03048C5437B08B7/tokens/PULSE-ST-001/partitions/0x0000000000000000000000000000000000000000000000000000000000000001/balance" \
   -H "Authorization: Bearer {access_token}"
 ```
 
 ```javascript JavaScript
+const holder = '0xAdb6Dc93FF5d5d93998e1643A03048C5437B08B7';
 const partition = '0x0000000000000000000000000000000000000000000000000000000000000001';
 const response = await fetch(
-  `https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/holders/0xd14f.../partitions/${partition}/balance`,
+  `https://api.stopulse.co.kr/main/v1/holders/${holder}/tokens/PULSE-ST-001/partitions/${partition}/balance`,
   {
     headers: { 'Authorization': 'Bearer {access_token}' }
   }
 );
+const balance = await response.json();
 ```
 
 </CodeGroup>
@@ -127,101 +157,66 @@ const response = await fetch(
 ### Response
 
 ```json 200
-{
-  "token": "PULSE-ST-001",
-  "holder": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-  "partition": "0x0000000000000000000000000000000000000000000000000000000000000001",
-  "balance": "800"
-}
+"800"
 ```
 
 ---
 
-## 보유자 파티션 목록 조회
+## 파티션별 잠금 잔액 조회
 
-특정 주소가 보유한 모든 파티션 목록을 조회합니다.
+특정 파티션에서 잠금 처리된 토큰 잔액을 조회합니다.
 
 ### Request
 
 ```bash
-GET /main/v1/tokens/{token}/holders/{holder}/partitions
+GET /main/v1/holders/{holder}/tokens/{tokenSymbol}/partitions/{partition}/locked/balance
 ```
 
 ### Example
 
 ```bash cURL
-curl -X GET "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/holders/0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb/partitions" \
+curl -X GET "https://api.stopulse.co.kr/main/v1/holders/0xAdb6Dc93FF5d5d93998e1643A03048C5437B08B7/tokens/PULSE-ST-001/partitions/0x0000000000000000000000000000000000000000000000000000000000000001/locked/balance" \
   -H "Authorization: Bearer {access_token}"
 ```
 
 ### Response
 
 ```json 200
-{
-  "token": "PULSE-ST-001",
-  "holder": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-  "partitions": [
-    {
-      "partition": "0x0000...0001",
-      "name": "Default",
-      "balance": "800"
-    },
-    {
-      "partition": "0x0000...0002",
-      "name": "Locked",
-      "balance": "200"
-    }
-  ]
-}
+"200"
 ```
+
+<Note>
+  잠금 잔액은 전송 가능 잔액에서 제외됩니다.
+
+  **전송 가능 잔액** = 파티션 잔액 - 잠금 잔액
+</Note>
 
 ---
 
-## 전체 보유자 목록 조회
+## 잔액 계산 예시
 
-토큰의 모든 보유자 목록을 조회합니다.
+```javascript
+async function getAvailableBalance(holder, token, partition) {
+  // 파티션 잔액 조회
+  const totalBalance = await fetch(
+    `https://api.stopulse.co.kr/main/v1/holders/${holder}/tokens/${token}/partitions/${partition}/balance`,
+    { headers: { 'Authorization': `Bearer ${accessToken}` } }
+  ).then(r => r.json());
 
-### Request
+  // 잠금 잔액 조회
+  const lockedBalance = await fetch(
+    `https://api.stopulse.co.kr/main/v1/holders/${holder}/tokens/${token}/partitions/${partition}/locked/balance`,
+    { headers: { 'Authorization': `Bearer ${accessToken}` } }
+  ).then(r => r.json());
 
-```bash
-GET /main/v1/tokens/{token}/holders
-```
+  // 전송 가능 잔액 계산
+  const availableBalance = BigInt(totalBalance) - BigInt(lockedBalance);
 
-### Query Parameters
-
-<ParamField query="page" type="number">
-  페이지 번호 (기본값: 1)
-</ParamField>
-
-<ParamField query="limit" type="number">
-  페이지당 항목 수 (기본값: 100, 최대: 1000)
-</ParamField>
-
-### Example
-
-```bash cURL
-curl -X GET "https://api.stopulse.co.kr/main/v1/tokens/PULSE-ST-001/holders?page=1&limit=100" \
-  -H "Authorization: Bearer {access_token}"
-```
-
-### Response
-
-```json 200
-{
-  "token": "PULSE-ST-001",
-  "holders": [
-    {
-      "address": "0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb",
-      "balance": "1000"
-    },
-    {
-      "address": "0x734c49630caC28EaaC33e9722268e64cA80AbcFd",
-      "balance": "500"
-    }
-  ],
-  "totalHolders": 2,
-  "page": 1,
-  "totalPages": 1
+  return {
+    total: totalBalance,
+    locked: lockedBalance,
+    available: availableBalance.toString()
+  };
 }
 ```
 
