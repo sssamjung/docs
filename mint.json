@@ -1,0 +1,113 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Pulse Docs",
+  "logo": {
+    "dark": "/images/logo-dark.svg",
+    "light": "/images/logo-light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0066FF",
+    "light": "#4D94FF",
+    "dark": "#0047B3",
+    "anchors": {
+      "from": "#0066FF",
+      "to": "#00D4FF"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:shs.block@shinhan.com"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "/quickstart"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Whitepaper",
+      "icon": "file-pdf",
+      "url": "resources/whitepaper"
+    },
+    {
+      "name": "Block Explorer",
+      "icon": "cube",
+      "url": "resources/block-explorer"
+    },
+    {
+      "name": "Contact",
+      "icon": "envelope",
+      "url": "mailto:shs.block@shinhan.com"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction",
+        "quickstart"
+      ]
+    },
+    {
+      "group": "Concepts",
+      "pages": [
+        "concepts/architecture",
+        "concepts/blockchain",
+        "concepts/smart-contracts",
+        "concepts/token-types",
+        "concepts/key-management",
+        "concepts/wallet-address",
+        "concepts/regulatory"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/issue-token",
+        "guides/transfer-token",
+        "guides/trading-flow",
+        "guides/dvp-settlement",
+        "guides/kafka-integration"
+      ]
+    },
+    {
+      "group": "Resources",
+      "pages": [
+        "resources/whitepaper",
+        "resources/glossary",
+        "resources/block-explorer"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/authentication",
+        "api-reference/kyc",
+        "api-reference/token",
+        "api-reference/token-holder",
+        "api-reference/operator-transfer",
+        "api-reference/operator-swap",
+        "api-reference/operator-redeem",
+        "api-reference/token-lock",
+        "api-reference/transaction"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "website": "https://stopulse.co.kr"
+  },
+  "api": {
+    "baseUrl": "https://api.stopulse.co.kr/main/v1",
+    "auth": {
+      "method": "bearer"
+    }
+  }
+}

@@ -1,0 +1,1187 @@
+openapi: 3.0.3
+info:
+  title: Pulse API
+  description: |
+    Pulse는 토큰증권(Security Token)을 위한 분산원장 플랫폼입니다.
+    금융위원회 가이드라인을 준수하며, ERC-1400 기반의 보안 토큰 발행 및 유통을 지원합니다.
+  version: 1.0.0
+  contact:
+    email: shs.block@shinhan.com
+    name: Pulse Support
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.stopulse.co.kr/main/v1
+    description: Production Server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: KYC
+    description: 지갑 주소 KYC 등록, 해제, 확인
+  - name: Token
+    description: 토큰 발행, 환수, 정보 조회, 파티션 관리
+  - name: Token Holder
+    description: 토큰 보유자 잔액 및 파티션 조회
+  - name: Transfer
+    description: 토큰 전송
+  - name: Swap
+    description: ST/DT 토큰 스왑 (DvP 결제)
+  - name: Lock
+    description: 토큰 잠금 및 해제
+  - name: Transaction
+    description: 트랜잭션 조회 및 상태 확인
+
+paths:
+  # KYC APIs
+  /kyc/{token}/{holder}:
+    post:
+      tags: [KYC]
+      summary: KYC 등록
+      description: 지갑 주소를 KYC 등록하여 토큰 전송 권한을 부여합니다.
+      operationId: registerKYC
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+        - $ref: '#/components/parameters/holderParam'
+      responses:
+        '200':
+          description: KYC 등록 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 이미 KYC 등록됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      tags: [KYC]
+      summary: KYC 상태 확인
+      description: 특정 지갑의 KYC 등록 상태를 조회합니다.
+      operationId: getKYCStatus
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+        - $ref: '#/components/parameters/holderParam'
+      responses:
+        '200':
+          description: KYC 상태 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYCStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags: [KYC]
+      summary: KYC 해제
+      description: 지갑 주소의 KYC 등록을 해제합니다.
+      operationId: removeKYC
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+        - $ref: '#/components/parameters/holderParam'
+      responses:
+        '200':
+          description: KYC 해제 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Token APIs
+  /tokens/{token}/info:
+    get:
+      tags: [Token]
+      summary: 토큰 정보 조회
+      description: 토큰의 기본 정보를 조회합니다.
+      operationId: getTokenInfo
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      responses:
+        '200':
+          description: 토큰 정보 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tokens/{token}/issuable:
+    get:
+      tags: [Token]
+      summary: 토큰 발행 가능 여부 확인
+      operationId: checkIssuable
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      responses:
+        '200':
+          description: 발행 가능 여부 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  isIssuable:
+                    type: boolean
+
+  /tokens/{token}/issue:
+    post:
+      tags: [Token]
+      summary: 토큰 발행
+      description: 새로운 토큰을 발행합니다. Issuer 권한이 필요합니다.
+      operationId: issueToken
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueRequest'
+      responses:
+        '200':
+          description: 토큰 발행 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueResponse'
+        '403':
+          description: 발행 권한 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tokens/{token}/redeem:
+    post:
+      tags: [Token]
+      summary: 토큰 환수
+      description: 발행된 토큰을 환수(소각)합니다. Issuer 권한이 필요합니다.
+      operationId: redeemToken
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeemRequest'
+      responses:
+        '200':
+          description: 토큰 환수 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Issuer 권한 없음
+
+  /tokens/{token}/finishIssuance:
+    post:
+      tags: [Token]
+      summary: 추가 발행 제한
+      description: 토큰의 추가 발행을 영구적으로 중지합니다. 이 작업은 되돌릴 수 없습니다.
+      operationId: finishIssuance
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      responses:
+        '200':
+          description: 추가 발행 제한 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  token:
+                    type: string
+                  isIssuable:
+                    type: boolean
+                    example: false
+
+  # Partition APIs
+  /tokens/{token}/partitions:
+    get:
+      tags: [Token]
+      summary: 파티션 목록 조회
+      operationId: getPartitions
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      responses:
+        '200':
+          description: 파티션 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartitionList'
+
+  /tokens/{token}/partitions/default:
+    get:
+      tags: [Token]
+      summary: 기본 파티션 조회
+      operationId: getDefaultPartition
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      responses:
+        '200':
+          description: 기본 파티션 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  defaultPartition:
+                    type: string
+    post:
+      tags: [Token]
+      summary: 기본 파티션 설정
+      operationId: setDefaultPartition
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [partition]
+              properties:
+                partition:
+                  type: string
+      responses:
+        '200':
+          description: 기본 파티션 설정 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+
+  # Document APIs
+  /tokens/{token}/documents:
+    get:
+      tags: [Token]
+      summary: 문서 목록 조회
+      operationId: getDocuments
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      responses:
+        '200':
+          description: 문서 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentList'
+    post:
+      tags: [Token]
+      summary: 문서 등록
+      operationId: registerDocument
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentRequest'
+      responses:
+        '200':
+          description: 문서 등록 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+
+  /tokens/{token}/documents/{docName}:
+    get:
+      tags: [Token]
+      summary: 문서 조회
+      operationId: getDocument
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+        - name: docName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 문서 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+    delete:
+      tags: [Token]
+      summary: 문서 삭제
+      operationId: deleteDocument
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+        - name: docName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 문서 삭제 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+
+  # Token Holder APIs
+  /tokens/{token}/holders:
+    get:
+      tags: [Token Holder]
+      summary: 전체 보유자 목록 조회
+      operationId: getHolders
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        '200':
+          description: 보유자 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HolderList'
+
+  /tokens/{token}/holders/{holder}/balance:
+    get:
+      tags: [Token Holder]
+      summary: 잔액 조회
+      operationId: getBalance
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+        - $ref: '#/components/parameters/holderParam'
+      responses:
+        '200':
+          description: 잔액 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+
+  /tokens/{token}/holders/{holder}/partitions:
+    get:
+      tags: [Token Holder]
+      summary: 보유자 파티션 목록 조회
+      operationId: getHolderPartitions
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+        - $ref: '#/components/parameters/holderParam'
+      responses:
+        '200':
+          description: 파티션 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HolderPartitions'
+
+  # Transfer APIs
+  /tokens/{token}/transfer/check:
+    post:
+      tags: [Transfer]
+      summary: 전송 가능 여부 확인
+      operationId: checkTransfer
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '200':
+          description: 전송 가능 여부 확인 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferCheck'
+
+  /tokens/{token}/transfer:
+    post:
+      tags: [Transfer]
+      summary: 토큰 전송
+      description: 토큰을 다른 주소로 전송합니다. Operator 권한이 필요합니다.
+      operationId: transfer
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '200':
+          description: 토큰 전송 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Operator 권한 없음
+
+  # Swap APIs
+  /swap:
+    post:
+      tags: [Swap]
+      summary: ST/DT 스왑 실행
+      description: Security Token과 Digital Token을 원자적으로 교환합니다 (DvP 결제).
+      operationId: executeSwap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwapRequest'
+      responses:
+        '200':
+          description: 스왑 실행 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwapResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /swap/check:
+    post:
+      tags: [Swap]
+      summary: 스왑 가능 여부 확인
+      operationId: checkSwap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwapRequest'
+      responses:
+        '200':
+          description: 스왑 가능 여부 확인 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwapCheck'
+
+  # Lock APIs
+  /tokens/{token}/lock:
+    post:
+      tags: [Lock]
+      summary: 토큰 잠금
+      operationId: lockToken
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LockRequest'
+      responses:
+        '200':
+          description: 토큰 잠금 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LockResponse'
+
+  /tokens/{token}/unlock:
+    post:
+      tags: [Lock]
+      summary: 토큰 잠금 해제
+      operationId: unlockToken
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockRequest'
+      responses:
+        '200':
+          description: 토큰 잠금 해제 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+
+  /tokens/{token}/holders/{holder}/locks:
+    get:
+      tags: [Lock]
+      summary: 잠금 상태 조회
+      operationId: getLockStatus
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+        - $ref: '#/components/parameters/holderParam'
+      responses:
+        '200':
+          description: 잠금 상태 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LockStatus'
+
+  # Transaction APIs
+  /transactions/{transactionHash}:
+    get:
+      tags: [Transaction]
+      summary: 트랜잭션 상태 조회
+      operationId: getTransaction
+      parameters:
+        - name: transactionHash
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 트랜잭션 해시
+      responses:
+        '200':
+          description: 트랜잭션 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /requests/{requestId}:
+    get:
+      tags: [Transaction]
+      summary: Request ID로 트랜잭션 조회
+      operationId: getRequestStatus
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 요청 상태 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestStatus'
+
+  /tokens/{token}/transactions:
+    get:
+      tags: [Transaction]
+      summary: 토큰 트랜잭션 이력 조회
+      operationId: getTokenTransactions
+      parameters:
+        - $ref: '#/components/parameters/tokenParam'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [issue, transfer, redeem, swap, lock, unlock]
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: 트랜잭션 이력 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionList'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access Token을 Authorization 헤더에 포함합니다.
+
+  parameters:
+    tokenParam:
+      name: token
+      in: path
+      required: true
+      description: "토큰 심볼 (예: PULSE-ST-001)"
+      example: PULSE-ST-001
+      schema:
+        type: string
+    holderParam:
+      name: holder
+      in: path
+      required: true
+      description: 지갑 주소
+      example: '0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb'
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: 잘못된 요청
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: 인증 실패
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: 리소스를 찾을 수 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: INVALID_ADDRESS
+            message:
+              type: string
+              example: The provided address is not a valid Ethereum address
+            details:
+              type: object
+
+    TransactionResponse:
+      type: object
+      properties:
+        transactionHash:
+          type: string
+          example: '0xabc123...'
+        requestId:
+          type: string
+          example: req-123456
+
+    KYCStatus:
+      type: object
+      properties:
+        token:
+          type: string
+          example: PULSE-ST-001
+        holder:
+          type: string
+          example: '0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb'
+        registered:
+          type: boolean
+          example: true
+        registeredAt:
+          type: string
+          format: date-time
+
+    TokenInfo:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: PULSE-ST-001
+        name:
+          type: string
+          example: Sample Security Token
+        totalSupply:
+          type: string
+          example: '1000000'
+        decimals:
+          type: integer
+          example: 0
+        issuer:
+          type: string
+          example: '0xa13Ff1b6930c25d96baf2165A9f3B83d057D2D73'
+        isIssuable:
+          type: boolean
+          example: true
+        controllers:
+          type: array
+          items:
+            type: string
+        defaultPartition:
+          type: string
+
+    IssueRequest:
+      type: object
+      required: [to, value]
+      properties:
+        partition:
+          type: string
+          description: 파티션 ID (선택)
+        to:
+          type: string
+          description: 발행받을 지갑 주소
+          example: '0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb'
+        value:
+          type: string
+          description: 발행 수량
+          example: '1000'
+        data:
+          type: string
+          description: 추가 데이터 (선택)
+
+    IssueResponse:
+      allOf:
+        - $ref: '#/components/schemas/TransactionResponse'
+        - type: object
+          properties:
+            token:
+              type: string
+            to:
+              type: string
+            value:
+              type: string
+
+    RedeemRequest:
+      type: object
+      required: [from, value]
+      properties:
+        partition:
+          type: string
+        from:
+          type: string
+          example: '0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb'
+        value:
+          type: string
+          example: '100'
+
+    PartitionList:
+      type: object
+      properties:
+        token:
+          type: string
+        partitions:
+          type: array
+          items:
+            type: object
+            properties:
+              partition:
+                type: string
+              name:
+                type: string
+              totalSupply:
+                type: string
+
+    DocumentList:
+      type: object
+      properties:
+        token:
+          type: string
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+
+    Document:
+      type: object
+      properties:
+        name:
+          type: string
+          example: prospectus
+        uri:
+          type: string
+          example: 'https://example.com/prospectus.pdf'
+        documentHash:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+
+    DocumentRequest:
+      type: object
+      required: [name, uri, documentHash]
+      properties:
+        name:
+          type: string
+        uri:
+          type: string
+        documentHash:
+          type: string
+
+    HolderList:
+      type: object
+      properties:
+        token:
+          type: string
+        holders:
+          type: array
+          items:
+            type: object
+            properties:
+              address:
+                type: string
+              balance:
+                type: string
+        totalHolders:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+
+    Balance:
+      type: object
+      properties:
+        token:
+          type: string
+        holder:
+          type: string
+        balance:
+          type: string
+
+    HolderPartitions:
+      type: object
+      properties:
+        token:
+          type: string
+        holder:
+          type: string
+        partitions:
+          type: array
+          items:
+            type: object
+            properties:
+              partition:
+                type: string
+              name:
+                type: string
+              balance:
+                type: string
+
+    TransferRequest:
+      type: object
+      required: [from, to, value]
+      properties:
+        partition:
+          type: string
+        from:
+          type: string
+          example: '0xd14f723e859ec4f3edee57bf78ceb7c81de08dfb'
+        to:
+          type: string
+          example: '0x734c49630caC28EaaC33e9722268e64cA80AbcFd'
+        value:
+          type: string
+          example: '100'
+        data:
+          type: string
+
+    TransferCheck:
+      type: object
+      properties:
+        transferable:
+          type: boolean
+        reason:
+          type: string
+        token:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        value:
+          type: string
+
+    TransferResponse:
+      allOf:
+        - $ref: '#/components/schemas/TransactionResponse'
+        - type: object
+          properties:
+            token:
+              type: string
+            from:
+              type: string
+            to:
+              type: string
+            value:
+              type: string
+
+    SwapRequest:
+      type: object
+      required: [stToken, dtToken, stFrom, stTo, stValue, dtFrom, dtTo, dtValue]
+      properties:
+        stToken:
+          type: string
+          description: Security Token 심볼
+        dtToken:
+          type: string
+          description: Digital Token 심볼
+        stFrom:
+          type: string
+          description: ST 송신자 (매도자) 주소
+        stTo:
+          type: string
+          description: ST 수신자 (매수자) 주소
+        stValue:
+          type: string
+          description: ST 전송 수량
+        dtFrom:
+          type: string
+          description: DT 송신자 (매수자) 주소
+        dtTo:
+          type: string
+          description: DT 수신자 (매도자) 주소
+        dtValue:
+          type: string
+          description: DT 전송 수량
+        partition:
+          type: string
+
+    SwapResponse:
+      allOf:
+        - $ref: '#/components/schemas/TransactionResponse'
+        - type: object
+          properties:
+            stToken:
+              type: string
+            dtToken:
+              type: string
+            stTransfer:
+              type: object
+              properties:
+                from:
+                  type: string
+                to:
+                  type: string
+                value:
+                  type: string
+            dtTransfer:
+              type: object
+              properties:
+                from:
+                  type: string
+                to:
+                  type: string
+                value:
+                  type: string
+
+    SwapCheck:
+      type: object
+      properties:
+        swappable:
+          type: boolean
+        reason:
+          type: string
+        checks:
+          type: object
+          properties:
+            stSenderBalance:
+              type: boolean
+            stSenderKYC:
+              type: boolean
+            stReceiverKYC:
+              type: boolean
+            dtSenderBalance:
+              type: boolean
+            dtSenderKYC:
+              type: boolean
+            dtReceiverKYC:
+              type: boolean
+
+    LockRequest:
+      type: object
+      required: [holder, value]
+      properties:
+        holder:
+          type: string
+        value:
+          type: string
+        partition:
+          type: string
+        reason:
+          type: string
+        unlockDate:
+          type: string
+          format: date-time
+
+    LockResponse:
+      allOf:
+        - $ref: '#/components/schemas/TransactionResponse'
+        - type: object
+          properties:
+            lockId:
+              type: string
+            token:
+              type: string
+            holder:
+              type: string
+            value:
+              type: string
+            reason:
+              type: string
+            unlockDate:
+              type: string
+              format: date-time
+            lockedAt:
+              type: string
+              format: date-time
+
+    UnlockRequest:
+      type: object
+      properties:
+        lockId:
+          type: string
+        holder:
+          type: string
+        value:
+          type: string
+
+    LockStatus:
+      type: object
+      properties:
+        token:
+          type: string
+        holder:
+          type: string
+        totalBalance:
+          type: string
+        lockedBalance:
+          type: string
+        availableBalance:
+          type: string
+        locks:
+          type: array
+          items:
+            type: object
+            properties:
+              lockId:
+                type: string
+              value:
+                type: string
+              reason:
+                type: string
+              unlockDate:
+                type: string
+                format: date-time
+              lockedAt:
+                type: string
+                format: date-time
+
+    Transaction:
+      type: object
+      properties:
+        transactionHash:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+        blockNumber:
+          type: integer
+        blockHash:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        from:
+          type: string
+        to:
+          type: string
+        type:
+          type: string
+          enum: [issue, transfer, redeem, swap, lock, unlock, kyc_register, kyc_remove]
+        token:
+          type: string
+        value:
+          type: string
+        gasUsed:
+          type: string
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    RequestStatus:
+      type: object
+      properties:
+        requestId:
+          type: string
+        transactionHash:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+        type:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        confirmedAt:
+          type: string
+          format: date-time
+
+    TransactionList:
+      type: object
+      properties:
+        token:
+          type: string
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        page:
+          type: integer
+        totalPages:
+          type: integer
+        totalCount:
+          type: integer

@@ -1,0 +1,183 @@
+---
+title: '인증'
+description: 'API 인증 방법'
+---
+
+# 인증 (Authentication)
+
+Pulse API는 **Bearer Token** 방식의 인증을 사용합니다. 모든 API 요청에 Access Token을 포함해야 합니다.
+
+## 인증 방식
+
+### Authorization 헤더
+
+모든 API 요청의 헤더에 Access Token을 포함합니다:
+
+```
+Authorization: Bearer {your_access_token}
+```
+
+### 요청 예시
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://api.stopulse.co.kr/main/v1/tokens/{token}/info" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.stopulse.co.kr/main/v1/tokens/{token}/info', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    'Content-Type': 'application/json'
+  }
+});
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    'Content-Type': 'application/json'
+}
+
+response = requests.get(
+    'https://api.stopulse.co.kr/main/v1/tokens/{token}/info',
+    headers=headers
+)
+```
+
+```java Java
+HttpClient client = HttpClient.newHttpClient();
+HttpRequest request = HttpRequest.newBuilder()
+    .uri(URI.create("https://api.stopulse.co.kr/main/v1/tokens/{token}/info"))
+    .header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+    .header("Content-Type", "application/json")
+    .GET()
+    .build();
+```
+
+</CodeGroup>
+
+## Access Token 발급
+
+### 발급 절차
+
+<Steps>
+  <Step title="네트워크 참여 신청">
+    [shs.block@shinhan.com](mailto:shs.block@shinhan.com)으로 Pulse 네트워크 참여 신청
+  </Step>
+  <Step title="계약 체결">
+    서비스 이용 계약 및 보안 점검
+  </Step>
+  <Step title="계정 생성">
+    운영팀에서 계정 생성 및 Access Token 발급
+  </Step>
+  <Step title="토큰 수령">
+    안전한 채널을 통해 Access Token 전달
+  </Step>
+</Steps>
+
+### Token 유형
+
+| 환경 | 용도 | 유효기간 |
+|------|------|----------|
+| **Sandbox** | 개발/테스트 | 무제한 |
+| **Production** | 실 운영 | 협의 |
+
+## 인증 에러
+
+### 에러 코드
+
+| HTTP Status | 에러 코드 | 설명 |
+|-------------|----------|------|
+| 401 | `UNAUTHORIZED` | Access Token 누락 또는 유효하지 않음 |
+| 401 | `TOKEN_EXPIRED` | Access Token 만료 |
+| 403 | `FORBIDDEN` | 해당 리소스에 대한 권한 없음 |
+
+### 에러 응답 예시
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing access token",
+    "details": "Authorization header is required"
+  }
+}
+```
+
+## 보안 권장사항
+
+<Warning>
+  Access Token은 민감 정보입니다. 아래 보안 수칙을 반드시 준수하세요.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="토큰 보관" icon="lock">
+    환경변수 또는 시크릿 매니저에 저장
+  </Card>
+  <Card title="코드 제외" icon="code">
+    소스코드에 하드코딩 금지
+  </Card>
+  <Card title="HTTPS 사용" icon="shield-halved">
+    모든 요청은 HTTPS로만 전송
+  </Card>
+  <Card title="접근 제한" icon="user-lock">
+    필요한 시스템만 토큰 접근 허용
+  </Card>
+</CardGroup>
+
+### 환경변수 사용 예시
+
+```bash
+# .env 파일
+PULSE_ACCESS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+```javascript
+// Node.js
+const accessToken = process.env.PULSE_ACCESS_TOKEN;
+```
+
+```python
+# Python
+import os
+access_token = os.environ.get('PULSE_ACCESS_TOKEN')
+```
+
+## Rate Limiting
+
+API 호출에는 Rate Limit이 적용됩니다:
+
+| 엔드포인트 유형 | 제한 |
+|---------------|------|
+| Read (조회) | 100 req/min |
+| Write (트랜잭션) | 30 req/min |
+
+Rate Limit 초과 시 `429 Too Many Requests` 응답이 반환됩니다.
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests",
+    "retryAfter": 60
+  }
+}
+```
+
+## API Base URL
+
+| 환경 | Base URL |
+|------|----------|
+| Production | `https://api.stopulse.co.kr/main/v1` |
+| Sandbox | 추후 제공 예정 |
+
+<Note>
+  모든 엔드포인트는 `/main/v1` 버전 프리픽스를 사용합니다.
+</Note>

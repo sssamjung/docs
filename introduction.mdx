@@ -1,0 +1,94 @@
+---
+title: 'Introduction'
+description: '한국형 토큰증권을 위한 금융 블록체인 인프라'
+---
+
+# Project Pulse
+
+**Pulse**는 신한투자증권 블록체인스크럼과 블록체인글로벌이 공동 개발한 **토큰증권(Security Token) 전용 분산원장 플랫폼**입니다.
+
+금융위원회의 '토큰증권 발행·유통 규율체계 정비방안'을 준수하며, BaaS(Blockchain as a Service) 형태로 제공되어 토큰증권 사업자가 빠르게 서비스를 구축할 수 있도록 지원합니다.
+
+<CardGroup cols={2}>
+  <Card title="빠른 시작" icon="rocket" href="/quickstart">
+    5분 안에 Pulse API 연동하기
+  </Card>
+  <Card title="아키텍처" icon="layer-group" href="/concepts/architecture">
+    인프라 구조 이해하기
+  </Card>
+  <Card title="API 레퍼런스" icon="code" href="/api-reference/authentication">
+    전체 API 문서 확인하기
+  </Card>
+  <Card title="백서" icon="file-pdf" href="/resources/whitepaper">
+    기술 백서 다운로드
+  </Card>
+</CardGroup>
+
+## 주요 특징
+
+<AccordionGroup>
+  <Accordion title="금융위 가이드라인 준수">
+    2023년 금융위원회가 발표한 '토큰증권 발행·유통 규율체계 정비방안'의 분산원장 요건을 충족합니다:
+    - 권리자 정보 및 거래 정보의 시간순 기록, 사후 조작·변경 방지
+    - 복수의 분산된 장부에 동일하게 기록
+    - 금융기관 노드 51% 이상 구성
+    - 별도 가상자산 불필요
+  </Accordion>
+
+  <Accordion title="엔터프라이즈급 인프라">
+    AWS 기반의 고가용성 클라우드 아키텍처:
+    - **Multi-AZ**: 서울 리전 4개 가용영역
+    - **99.99% 가용성** 목표 (하루 8.64초 미만 장애시간)
+    - **Auto Scaling**: 트래픽에 따른 자동 확장
+    - **Aurora DB**: 고성능 데이터베이스
+  </Accordion>
+
+  <Accordion title="Hyperledger Besu 기반">
+    EVM 호환 엔터프라이즈 블록체인:
+    - **QBFT 합의 알고리즘**: 즉각적인 Finality
+    - **ERC-1400 스마트 컨트랙트**: 토큰증권 표준
+    - **Upgradable Contract**: Proxy Pattern 적용
+  </Accordion>
+
+  <Accordion title="T+0 DvP 지원">
+    당일 결제가 가능한 Delivery versus Payment:
+    - Kafka 기반 메시지 라우팅
+    - 증권사 레거시 시스템 연동
+    - 실시간 권리 이전
+  </Accordion>
+</AccordionGroup>
+
+## 참여 금융기관
+
+현재 Pulse 네트워크에 노드로 참여 중인 금융기관:
+
+| 기관 | 역할 |
+|-----|------|
+| 신한투자증권 | 인프라 운영, Validator Node |
+| SK증권 | Validator Node |
+
+<Note>
+  Pulse 네트워크 참여에 관심이 있으시면 [shs.block@shinhan.com](mailto:shs.block@shinhan.com)으로 문의해주세요.
+</Note>
+
+## 지원 토큰 유형
+
+Pulse는 다양한 토큰증권 유형을 지원합니다:
+
+- **투자계약증권**: 수익분배형 토큰
+- **수익증권**: 부동산, 선박, 콘텐츠 등 기초자산
+- **채무증권**: 회사채, ABS 등
+
+## 다음 단계
+
+<Steps>
+  <Step title="Quickstart">
+    [빠른 시작 가이드](/quickstart)에서 API 키 발급 및 첫 번째 API 호출 방법을 알아보세요.
+  </Step>
+  <Step title="아키텍처 이해">
+    [아키텍처 문서](/concepts/architecture)에서 Pulse 인프라 구조를 살펴보세요.
+  </Step>
+  <Step title="API 연동">
+    [API 레퍼런스](/api-reference/authentication)에서 상세 API 명세를 확인하세요.
+  </Step>
+</Steps>
