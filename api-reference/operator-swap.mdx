@@ -168,34 +168,29 @@ curl -X POST "https://api.stopulse.co.kr/main/v1/swap/st/create/tx/data" \
 
 ## DvP 스왑 플로우
 
+```mermaid
+flowchart TB
+    subgraph Step1["① 트랜잭션 데이터 생성"]
+        DT["/swap/dt/create/<br/>tx/data"]
+        ST["/swap/st/create/<br/>tx/data"]
+    end
+
+    subgraph Step2["② 각각 서명"]
+        SignDT["Sign DT Tx"]
+        SignST["Sign ST Tx"]
+    end
+
+    subgraph Step3["③ Atomic Swap 실행"]
+        Send["/transaction/send<br/>(Both TX together)"]
+    end
+
+    DT --> SignDT
+    ST --> SignST
+    SignDT --> Send
+    SignST --> Send
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            DvP 스왑 플로우                                   │
-│                                                                             │
-│   ① DT 트랜잭션 데이터 생성    ② ST 트랜잭션 데이터 생성                     │
-│   ┌──────────────────────┐    ┌──────────────────────┐                     │
-│   │ /swap/dt/create/     │    │ /swap/st/create/     │                     │
-│   │ tx/data              │    │ tx/data              │                     │
-│   └──────────┬───────────┘    └──────────┬───────────┘                     │
-│              │                           │                                  │
-│              │    ③ 각각 서명            │                                  │
-│              ▼                           ▼                                  │
-│   ┌──────────────────────┐    ┌──────────────────────┐                     │
-│   │    Sign DT Tx        │    │    Sign ST Tx        │                     │
-│   └──────────┬───────────┘    └──────────┬───────────┘                     │
-│              │                           │                                  │
-│              └───────────┬───────────────┘                                  │
-│                          │                                                  │
-│              ④ Atomic Swap 실행                                            │
-│                          ▼                                                  │
-│              ┌──────────────────────┐                                      │
-│              │  /transaction/send   │                                      │
-│              │  (Both TX together)  │                                      │
-│              └──────────────────────┘                                      │
-│                                                                             │
-│   결과: ST와 DT가 원자적으로 교환 (동시 성공 또는 동시 실패)                 │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+**결과**: ST와 DT가 원자적으로 교환 (동시 성공 또는 동시 실패)
 
 ---
 

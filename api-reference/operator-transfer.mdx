@@ -251,17 +251,11 @@ curl -X POST "https://api.stopulse.co.kr/main/v1/transfer/between-partitions/tx/
 
 ## 전송 플로우
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            토큰 전송 플로우                                   │
-│                                                                             │
-│  ①전송가능확인       ②트랜잭션생성        ③서명           ④트랜잭션전송       │
-│  ┌───────────┐     ┌───────────┐     ┌───────────┐     ┌───────────┐       │
-│  │ /transfer │────▶│ /transfer │────▶│   Sign    │────▶│/transaction│      │
-│  │ /possible │     │ /tx/data  │     │  (Client) │     │  /send    │      │
-│  └───────────┘     └───────────┘     └───────────┘     └───────────┘       │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    A["① /transfer<br/>/possible"] --> B["② /transfer<br/>/tx/data"]
+    B --> C["③ Sign<br/>(Client)"]
+    C --> D["④ /transaction<br/>/send"]
 ```
 
 ---

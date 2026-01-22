@@ -11,24 +11,13 @@ Pulse는 **ERC-1400** 표준을 기반으로 한 토큰증권 스마트 컨트�
 
 ERC-1400은 여러 ERC 표준을 통합한 **Umbrella Architecture** 형태로 구현됩니다:
 
-```
-                    ┌─────────────┐
-                    │  ERC-1400   │
-                    │  (Umbrella) │
-                    └──────┬──────┘
-           ┌───────────────┼───────────────┐
-           │               │               │
-     ┌─────┴─────┐   ┌─────┴─────┐   ┌─────┴─────┐
-     │ ERC-1410  │   │ ERC-1594  │   │ ERC-1643  │
-     │ Partially │   │   Core    │   │ Document  │
-     │ Fungible  │   │ Security  │   │Management │
-     └───────────┘   └───────────┘   └───────────┘
-                           │
-                     ┌─────┴─────┐
-                     │ ERC-1644  │
-                     │Controller │
-                     │ Operation │
-                     └───────────┘
+```mermaid
+flowchart TB
+    ERC1400["ERC-1400<br/>(Umbrella)"]
+    ERC1400 --> ERC1410["ERC-1410<br/>Partially Fungible"]
+    ERC1400 --> ERC1594["ERC-1594<br/>Core Security"]
+    ERC1400 --> ERC1643["ERC-1643<br/>Document Management"]
+    ERC1594 --> ERC1644["ERC-1644<br/>Controller Operation"]
 ```
 
 ## 하위 표준 상세
@@ -123,30 +112,19 @@ ERC-1400은 여러 ERC 표준을 통합한 **Umbrella Architecture** 형태로 �
 
 ### Beacon Proxy 패턴
 
-```
-┌─────────────────┐
-│  ERC20 Token    │
-│ Factory Contract│
-└────────┬────────┘
-         │ 생성
-         ▼
-┌─────────────────┐      ┌─────────────────┐
-│   ERC20 Proxy   │─────▶│  Beacon Proxy   │
-├─────────────────┤      │ (Implementation │
-│   ERC20 Proxy   │─────▶│    Address)     │
-├─────────────────┤      └────────┬────────┘
-│   ERC20 Proxy   │               │
-└─────────────────┘               │ delegatecall
-                                  ▼
-                    ┌─────────────────────────┐
-                    │   ERC20 Logic V1        │
-                    └─────────────────────────┘
-                                  │
-                                  │ 업그레이드
-                                  ▼
-                    ┌─────────────────────────┐
-                    │   ERC20 Logic V2        │
-                    └─────────────────────────┘
+```mermaid
+flowchart TB
+    Factory["ERC20 Token<br/>Factory Contract"]
+    Factory -->|생성| Proxy1["ERC20 Proxy"]
+    Factory -->|생성| Proxy2["ERC20 Proxy"]
+    Factory -->|생성| Proxy3["ERC20 Proxy"]
+
+    Proxy1 --> Beacon["Beacon Proxy<br/>(Implementation Address)"]
+    Proxy2 --> Beacon
+    Proxy3 --> Beacon
+
+    Beacon -->|delegatecall| LogicV1["ERC20 Logic V1"]
+    LogicV1 -->|업그레이드| LogicV2["ERC20 Logic V2"]
 ```
 
 ### 컨트랙트 역할
@@ -195,14 +173,11 @@ ERC-1400은 여러 ERC 표준을 통합한 **Umbrella Architecture** 형태로 �
 
 토큰 발행 권한을 가진 키:
 
-```
-행위 가능:
 - 토큰 발행 (Issue)
 - 토큰 소각 (Burn)
 - 전송 제한 설정
 - 컨트롤러 지정
 - 운영자 지정
-```
 
 ### 보안 관리
 

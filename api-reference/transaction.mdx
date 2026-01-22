@@ -102,21 +102,23 @@ print("결과:", response.json())
 
 모든 토큰 작업(전송, 스왑, 잠금 등)은 동일한 패턴을 따릅니다:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          트랜잭션 실행 플로우                                  │
-│                                                                             │
-│  ① 트랜잭션 데이터 생성        ② 클라이언트 서명        ③ 트랜잭션 전송        │
-│  ┌───────────────────┐     ┌───────────────────┐     ┌───────────────┐     │
-│  │ /transfer/tx/data │     │                   │     │ /transaction  │     │
-│  │ /swap/dt/tx/data  │────▶│   Private Key로   │────▶│    /send      │     │
-│  │ /redeem/tx/data   │     │   트랜잭션 서명    │     │               │     │
-│  │ /lock/create/...  │     │                   │     │               │     │
-│  └───────────────────┘     └───────────────────┘     └───────────────┘     │
-│                                                                             │
-│  응답: { to, data, gas }       서명된 트랜잭션          응답: txHash         │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Step1["① 트랜잭션 데이터 생성"]
+        API["/transfer/tx/data<br/>/swap/dt/tx/data<br/>/redeem/tx/data<br/>/lock/create/..."]
+    end
+
+    subgraph Step2["② 클라이언트 서명"]
+        Sign["Private Key로<br/>트랜잭션 서명"]
+    end
+
+    subgraph Step3["③ 트랜잭션 전송"]
+        Send["/transaction<br/>/send"]
+    end
+
+    API -->|"{ to, data, gas }"| Sign
+    Sign -->|"서명된 트랜잭션"| Send
+    Send -->|"txHash"| Result["완료"]
 ```
 
 ---
