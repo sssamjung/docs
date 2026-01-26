@@ -1,11 +1,13 @@
 ---
-title: '키 관리'
-description: 'Issuer, Operator, Controller 키 체계'
+title: 'Operator 권한 이해'
+description: 'Pulse 네트워크의 Operator 역할과 권한'
 ---
 
-# 키 관리 (Key Management)
+# Operator 권한 이해
 
-Pulse 인프라에서는 트랜잭션의 목적과 권한에 따라 **3가지 유형의 키**가 사용됩니다. 각 키는 역할과 보안 수준에 따라 다른 위치에서 관리됩니다.
+Pulse 인프라에서는 트랜잭션의 목적과 권한에 따라 **3가지 유형의 키**가 사용됩니다. 이 문서에서는 일상적인 토큰 운영을 담당하는 **Operator** 역할을 중심으로 설명합니다.
+
+---
 
 ## 키 유형 개요
 
@@ -15,6 +17,41 @@ flowchart TB
     Issuer -->|지정| Operator["Operator Key<br/>(운영자)"]
     Issuer -->|지정| Controller["Controller Key<br/>(컨트롤러)"]
 ```
+
+| 역할 | 담당자 | 주요 행위 |
+|------|--------|----------|
+| **Issuer** | 혁금사업자 (Pulse-BCG 대행) | 토큰 발행, 소각, 권한 관리 |
+| **Operator** | 발행사 / 유통사 | 전송, Swap, 조회 |
+| **Controller** | 계좌관리기관 | 강제 전송, 동결, 압류 |
+
+---
+
+## Operator Key (운영자)
+
+**Operator Key**는 일상적인 토큰 운영 업무를 수행하는 키입니다.
+
+### 담당자
+
+- 발행사
+- 유통사 (장외거래중개업자)
+
+### 가능한 행위
+
+| 행위 | 설명 |
+|------|------|
+| **토큰 전송** | Transfer 트랜잭션 서명 |
+| **토큰 Swap** | DT ↔ ST 교환 |
+| **잔액 조회** | 투자자 잔액 확인 |
+| **전송 가능 여부 확인** | Transfer 가능 여부 사전 검증 |
+
+### 키 관리 위치
+
+| 환경 | 저장 위치 |
+|------|----------|
+| **클라우드** | AWS KMS |
+| **온프레미스** | 금융사 내부 HSM |
+
+---
 
 ## Issuer Key (발행자)
 
@@ -60,40 +97,7 @@ flowchart TB
 | **접근** | 다중 서명 (Multi-sig) 필수 |
 | **사용** | 오프라인 서명 권장 |
 
-## Operator Key (운영자)
-
-**Operator Key**는 일상적인 토큰 운영 업무를 수행하는 키입니다.
-
-### 담당자
-
-- 발행사
-- 유통사 (장외거래중개업자)
-
-### 가능한 행위
-
-| 행위 | 설명 |
-|------|------|
-| **토큰 전송** | Transfer 트랜잭션 서명 |
-| **토큰 Swap** | DT ↔ ST 교환 |
-| **잔액 조회** | 투자자 잔액 확인 |
-| **전송 가능 여부 확인** | Transfer 가능 여부 사전 검증 |
-
-### 사용 예시
-
-```javascript
-// Operator Key로 서명된 전송 트랜잭션
-POST /main/v1/transaction/send
-{
-  "signedTransaction": "0x..." // Operator Key로 서명
-}
-```
-
-### 키 관리 위치
-
-| 환경 | 저장 위치 |
-|------|----------|
-| **클라우드** | AWS KMS |
-| **온프레미스** | 금융사 내부 HSM |
+---
 
 ## Controller Key (컨트롤러)
 
@@ -130,35 +134,11 @@ Controller 권한은 다음과 같은 경우에만 사용됩니다:
   Controller 권한 사용 시 모든 행위는 감사 로그에 기록됩니다.
 </Note>
 
-## 역할별 키 관리 요약
+---
 
-| 역할 | 담당자 | 키 관리 위치 | 주요 행위 |
-|------|--------|-------------|----------|
-| **Issuer** | 혁금사업자 (Pulse-BCG 대행) | HSM / AWS KMS | 토큰 발행, 소각, 권한 관리 |
-| **Operator** | 발행사 / 유통사 | 발행사/유통사 시스템 | 전송, Swap, 조회 |
-| **Controller** | 계좌관리기관 | 증권사 내부 시스템 | 강제 전송, 동결, 압류 |
+## 트랜잭션 서명 흐름
 
-## 키 생성 및 발급 프로세스
-
-### 1. Operator Key 발급
-
-```mermaid
-flowchart LR
-    A["발행사 요청"] --> B["Pulse 네트워크 운영"]
-    B -->|생성| C["Operator Key 발급"]
-```
-
-### 2. Controller Key 지정
-
-```mermaid
-flowchart LR
-    A["Issuer"] -->|호출| B["setController 함수"]
-    B --> C["Controller 권한 부여"]
-```
-
-## API에서의 키 사용
-
-### 트랜잭션 서명 흐름
+Operator가 토큰 전송을 수행하는 흐름:
 
 ```mermaid
 sequenceDiagram
@@ -200,6 +180,8 @@ const result = await fetch('/main/v1/transaction/send', {
 });
 ```
 
+---
+
 ## 보안 권장사항
 
 <Steps>
@@ -216,3 +198,22 @@ const result = await fetch('/main/v1/transaction/send', {
     Operator Key는 주기적으로 교체 권장
   </Step>
 </Steps>
+
+---
+
+## 관련 문서
+
+<CardGroup cols={2}>
+  <Card title="Operator API" icon="code" href="/operator/operator-api">
+    Operator API 사용법
+  </Card>
+  <Card title="Transfer API" icon="paper-plane" href="/trading/transfer-api">
+    토큰 전송 API
+  </Card>
+  <Card title="Swap API" icon="right-left" href="/trading/swap-api">
+    토큰 스왑 API
+  </Card>
+  <Card title="Kafka 연동" icon="message" href="/operator/kafka-integration">
+    이벤트 수신
+  </Card>
+</CardGroup>

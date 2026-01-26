@@ -25,22 +25,17 @@
     "name": "Get Started",
     "url": "/quickstart"
   },
-  "tabs": [
-    {
-      "name": "API Reference",
-      "url": "api-reference"
-    }
-  ],
+  "tabs": [],
   "anchors": [
     {
       "name": "Whitepaper",
       "icon": "file-pdf",
-      "url": "resources/whitepaper"
+      "url": "appendix/whitepaper"
     },
     {
       "name": "Block Explorer",
       "icon": "cube",
-      "url": "resources/block-explorer"
+      "url": "appendix/block-explorer"
     },
     {
       "name": "Contact",
@@ -50,55 +45,65 @@
   ],
   "navigation": [
     {
-      "group": "Get Started",
+      "group": "시작하기",
       "pages": [
         "introduction",
-        "quickstart"
+        "quickstart",
+        "getting-started/authentication"
       ]
     },
     {
-      "group": "Concepts",
+      "group": "토큰 발행",
       "pages": [
-        "concepts/architecture",
-        "concepts/blockchain",
-        "concepts/smart-contracts",
-        "concepts/token-types",
-        "concepts/key-management",
-        "concepts/wallet-address",
-        "concepts/regulatory"
+        "issuance/issue-token",
+        "issuance/token-api",
+        "issuance/partition"
       ]
     },
     {
-      "group": "Guides",
+      "group": "토큰 유통",
       "pages": [
-        "guides/issue-token",
-        "guides/transfer-token",
-        "guides/trading-flow",
-        "guides/dvp-settlement",
-        "guides/kafka-integration"
+        "trading/trading-flow",
+        "trading/transfer-api",
+        "trading/swap-api",
+        "trading/lock-api"
       ]
     },
     {
-      "group": "Resources",
+      "group": "계정 관리",
       "pages": [
-        "resources/whitepaper",
-        "resources/glossary",
-        "resources/block-explorer"
+        "account/kyc-overview",
+        "account/kyc-api",
+        "account/token-holder-api",
+        "account/wallet-address"
       ]
     },
     {
-      "group": "API Reference",
+      "group": "운영자 가이드",
       "pages": [
-        "api-reference/authentication",
-        "api-reference/kyc",
-        "api-reference/token",
-        "api-reference/token-holder",
-        "api-reference/operator",
-        "api-reference/operator-transfer",
-        "api-reference/operator-swap",
-        "api-reference/operator-redeem",
-        "api-reference/token-lock",
-        "api-reference/transaction"
+        "operator/operator-overview",
+        "operator/operator-api",
+        "operator/redeem-api",
+        "operator/kafka-integration"
+      ]
+    },
+    {
+      "group": "기술 참고",
+      "pages": [
+        "reference/architecture",
+        "reference/blockchain",
+        "reference/smart-contracts",
+        "reference/token-types",
+        "reference/transaction-api"
+      ]
+    },
+    {
+      "group": "부록",
+      "pages": [
+        "appendix/whitepaper",
+        "appendix/glossary",
+        "appendix/block-explorer",
+        "appendix/regulatory"
       ]
     }
   ],
