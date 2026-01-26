@@ -1,0 +1,110 @@
+---
+title: '변경 이력'
+description: 'Pulse API 및 문서 변경 내역'
+---
+
+# 변경 이력 (Changelog)
+
+Pulse API와 문서의 주요 변경 사항을 기록합니다.
+
+---
+
+## 2025년 1월
+
+### v1.2.0 (2025-01-15)
+
+<AccordionGroup>
+  <Accordion title="새로운 기능">
+    - **Partition API 개선**: 파티션별 잔액 조회 기능 추가
+    - **Kafka 이벤트 확장**: 새로운 이벤트 타입 추가 (`PARTITION_TRANSFERRED`, `DOCUMENT_UPDATED`)
+    - **Batch Transfer API**: 다건 전송을 위한 배치 API 추가
+  </Accordion>
+  <Accordion title="개선 사항">
+    - API 응답 속도 20% 개선
+    - 에러 메시지 상세화
+    - Rate Limit 정책 완화 (100 → 200 req/min)
+  </Accordion>
+  <Accordion title="버그 수정">
+    - 특정 조건에서 KYC 상태 조회 실패 문제 수정
+    - Swap API의 동시성 이슈 해결
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## 2024년 12월
+
+### v1.1.0 (2024-12-20)
+
+<AccordionGroup>
+  <Accordion title="새로운 기능">
+    - **Lock API 추가**: 토큰 잠금/해제 기능
+    - **Document API 추가**: 토큰 관련 문서 등록 및 조회
+    - **Transaction History API**: 거래 내역 조회 기능 강화
+  </Accordion>
+  <Accordion title="문서 업데이트">
+    - 유통 시스템 연동 가이드 추가
+    - Kafka 연동 가이드 추가
+    - API 에러 코드 문서화
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## 2024년 11월
+
+### v1.0.0 (2024-11-01)
+
+<Note>
+  Pulse API 정식 출시
+</Note>
+
+<AccordionGroup>
+  <Accordion title="핵심 기능">
+    - **Token API**: 토큰 발행, 정보 조회, 발행 종료
+    - **Transfer API**: 토큰 전송
+    - **Swap API**: DvP 결제 (ST/DT 스왑)
+    - **KYC API**: KYC 등록, 해제, 확인
+    - **Token Holder API**: 잔액 조회, 보유자 목록
+  </Accordion>
+  <Accordion title="인프라">
+    - AWS 기반 Multi-AZ 구성
+    - Hyperledger Besu 블록체인 네트워크
+    - QBFT 합의 알고리즘 적용
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## 버전 관리 정책
+
+### Semantic Versioning
+
+Pulse API는 [Semantic Versioning](https://semver.org/) 정책을 따릅니다:
+
+| 버전 | 설명 |
+|------|------|
+| **Major (X.0.0)** | 하위 호환성이 없는 변경 |
+| **Minor (0.X.0)** | 하위 호환성 있는 새 기능 |
+| **Patch (0.0.X)** | 하위 호환성 있는 버그 수정 |
+
+### 사전 공지
+
+<Warning>
+  하위 호환성이 없는 변경(Breaking Change)은 최소 30일 전에 공지됩니다.
+</Warning>
+
+---
+
+## 업데이트 알림 받기
+
+API 변경 사항에 대한 알림을 받으려면 다음 방법을 이용하세요:
+
+<CardGroup cols={2}>
+  <Card title="이메일 구독" icon="envelope">
+    shs.block@shinhan.com으로 구독 요청
+  </Card>
+  <Card title="Webhook 연동" icon="webhook">
+    변경 알림 Webhook 설정 가능
+  </Card>
+</CardGroup>

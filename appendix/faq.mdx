@@ -1,0 +1,180 @@
+---
+title: '자주 묻는 질문'
+description: 'Pulse API 관련 FAQ'
+---
+
+# 자주 묻는 질문 (FAQ)
+
+Pulse API 사용 중 자주 묻는 질문들을 정리했습니다.
+
+---
+
+## 일반
+
+<AccordionGroup>
+  <Accordion title="Pulse 네트워크에 참여하려면 어떻게 해야 하나요?">
+    Pulse 네트워크 참여를 위해서는 다음 절차가 필요합니다:
+
+    1. **참여 신청**: shs.block@shinhan.com으로 참여 신청
+    2. **계약 체결**: 네트워크 참여 계약 진행
+    3. **Access Token 발급**: 계약 완료 후 API 인증 토큰 발급
+    4. **키 생성**: 발행사/운영자 키 생성 및 등록
+
+    자세한 내용은 [시작하기](/quickstart) 가이드를 참고하세요.
+  </Accordion>
+
+  <Accordion title="테스트 환경이 제공되나요?">
+    네, Pulse는 테스트넷(Testnet)을 제공합니다:
+
+    - **Base URL**: `https://api.stopulse.co.kr/testnet/v1`
+    - **테스트용 토큰**: 별도 신청 필요
+
+    테스트넷에서 충분히 테스트 후 메인넷으로 전환하시기 바랍니다.
+  </Accordion>
+
+  <Accordion title="API Rate Limit은 어떻게 되나요?">
+    | 환경 | Rate Limit |
+    |------|-----------|
+    | Testnet | 50 req/min |
+    | Mainnet | 200 req/min |
+
+    Rate Limit 초과 시 `429 Too Many Requests` 응답이 반환됩니다. 더 높은 limit이 필요한 경우 별도 문의 바랍니다.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## 토큰 발행
+
+<AccordionGroup>
+  <Accordion title="토큰 발행 최소/최대 수량이 있나요?">
+    - **최소 발행량**: 제한 없음
+    - **최대 발행량**: 제한 없음 (단, 총 발행량은 `finishIssuance` 호출 전까지 추가 발행 가능)
+
+    토큰의 `decimals`는 현재 **0**으로 고정되어 있어, 최소 단위는 1개입니다.
+  </Accordion>
+
+  <Accordion title="발행된 토큰을 수정할 수 있나요?">
+    토큰의 기본 속성(symbol, name 등)은 생성 후 변경할 수 없습니다. 변경 가능한 항목:
+
+    - **문서(Documents)**: 추가/삭제 가능
+    - **발행량**: `finishIssuance` 호출 전까지 추가 발행 가능
+    - **KYC 목록**: 등록/해제 가능
+  </Accordion>
+
+  <Accordion title="파티션은 언제 사용하나요?">
+    파티션은 동일 토큰 내에서 서로 다른 권리나 상태를 구분할 때 사용합니다:
+
+    - **일반 파티션**: 자유 거래 가능한 토큰
+    - **락업 파티션**: 일정 기간 거래 제한
+    - **우선주 파티션**: 우선 배당권이 있는 토큰
+
+    자세한 내용은 [파티션 가이드](/issuance/partition)를 참고하세요.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## 거래 및 유통
+
+<AccordionGroup>
+  <Accordion title="DvP 결제는 어떻게 동작하나요?">
+    DvP(Delivery versus Payment)는 ST와 DT를 동시에 교환하는 **원자적(Atomic)** 거래입니다:
+
+    ```
+    매도자: ST → 매수자
+    매수자: DT → 매도자
+    ```
+
+    두 전송이 동시에 실행되거나, 둘 다 실행되지 않습니다(All or Nothing).
+
+    자세한 내용은 [Swap API](/trading/swap-api)를 참고하세요.
+  </Accordion>
+
+  <Accordion title="거래 취소가 가능한가요?">
+    블록체인에 기록된 거래는 **취소가 불가능**합니다.
+
+    잘못된 거래 발생 시 대응 방법:
+    1. 반대 거래 실행 (역전송)
+    2. 운영자 권한으로 Redeem 후 재발행
+
+    중요한 거래는 반드시 테스트넷에서 먼저 테스트하세요.
+  </Accordion>
+
+  <Accordion title="거래 실패 시 어떻게 되나요?">
+    거래 실패 시 **자동 롤백**됩니다:
+
+    - 잔액 변경 없음
+    - Gas 소모 없음 (Query 실패 시)
+    - Kafka 이벤트로 실패 알림 (연동 시)
+
+    실패 원인은 응답의 `error` 필드에서 확인할 수 있습니다.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## KYC
+
+<AccordionGroup>
+  <Accordion title="KYC 등록 없이 토큰을 받을 수 있나요?">
+    아니요, **KYC 미등록 주소는 토큰을 수령할 수 없습니다**.
+
+    토큰을 전송하기 전에 반드시 수신자 주소의 KYC 등록 여부를 확인하세요:
+
+    ```bash
+    GET /kyc/{token}/{address}
+    ```
+  </Accordion>
+
+  <Accordion title="KYC를 해제하면 보유한 토큰은 어떻게 되나요?">
+    KYC 해제 시:
+
+    - **보유 토큰**: 그대로 유지됨
+    - **신규 수령**: 불가
+    - **전송(출금)**: 가능
+
+    KYC 해제된 주소는 새로운 토큰을 받을 수 없지만, 기존 보유분은 출금 가능합니다.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## 보안
+
+<AccordionGroup>
+  <Accordion title="Access Token이 유출되면 어떻게 하나요?">
+    즉시 다음 조치를 취하세요:
+
+    1. **토큰 무효화**: shs.block@shinhan.com으로 무효화 요청
+    2. **새 토큰 발급**: 새로운 Access Token 발급
+    3. **보안 점검**: 유출 경로 확인 및 보안 강화
+
+    <Warning>
+      Access Token은 안전하게 보관하고, 소스 코드나 공개 저장소에 포함하지 마세요.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="API 호출 시 IP 제한이 있나요?">
+    기본적으로 IP 제한은 없습니다. 필요 시 **IP 화이트리스트**를 설정할 수 있습니다:
+
+    - 운영팀에 요청하여 허용 IP 목록 등록
+    - 등록된 IP에서만 API 호출 가능
+
+    보안이 중요한 프로덕션 환경에서는 IP 제한을 권장합니다.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## 문제 해결
+
+일반적인 문제 해결 방법은 [Troubleshooting 가이드](/appendix/troubleshooting)를 참고하세요.
+
+---
+
+## 추가 질문
+
+<Card title="문의하기" icon="envelope" href="mailto:shs.block@shinhan.com">
+  FAQ에서 답을 찾지 못한 경우 이메일로 문의해 주세요.
+</Card>

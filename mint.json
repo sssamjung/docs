@@ -103,7 +103,10 @@
         "appendix/whitepaper",
         "appendix/glossary",
         "appendix/block-explorer",
-        "appendix/regulatory"
+        "appendix/regulatory",
+        "appendix/changelog",
+        "appendix/faq",
+        "appendix/troubleshooting"
       ]
     }
   ],
